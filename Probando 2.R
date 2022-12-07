@@ -1,4 +1,13 @@
-if (!require("lmtest")) install.packages("lmtest")
+#Instalamos algunos paquetes
+install.packages("readr")
+install.packages("lmtest")
+install.packages("dplyr")
+install.packages("datos")
+install.packages("tidyverse")
+install.packages("haven")
+install.packages("assertthat")
+install.packages("car")
+#los activamos
 library("readr")
 library("lmtest")
 library("dplyr")
@@ -6,57 +15,98 @@ library("datos")
 library("tidyverse")
 library("haven")
 library("assertthat")
-library("haven")
 library("car")
-
-base <- read_sav("~/FCEA/Econometria 1/Proyecto/R - Proyecto /Base datos/BASE_ENS_Formulario Individual.sav")
-#seleccionamos las variables que son de interes 
+####
+###
+# SUBIR BASE 
+base <- read_sav("BASE_ENS_Formulario Individual.sav")
+#####
+# SELECCIONAR VARIABLES:
+# Problemas Cardiacos - Refrescos con azucar - Carne - Huevos - Snakcs - 
+# - Cafe - Sal - Agrega más sal - Hipertención - Diabetes - Obesidad - Sexo - Edad - Nivel de actividad fisica
 base_select <- select(base, aed76h, ahv86h, ahv86e, ahv86g, ahv86i, ahv87g,ahv91,ahv92, aed75c1, aed75c2, aed75c4, pssexo_ok,psedad_ok, ahv115 ) 
-#con este vector le damos nombre a las variables
+#####
+####
+# NOMBRAR VARIABLES
 c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal", "hiper", "diabet", "obesi", "sexo", "edad", "actfisica" )
 names(base_select) = c
-
-
-#combertimos el valor de la variable
+#####
+####
+# Redefinimos las variables 
+# Pasando a reflejar la cantidad de elementos consumidos por semana. 
+# El valor 1 que representa "A diario" le dimos valor 7, que representa el consumo diario de huevos por semana y asi las otras 5 opciones
+# el valor 2 que representa "3 o más veces por semana" pasa a ser 3 
+# el valor 3 que representa "1 o 2 veces por semana" pasa a ser 2
+# el valor 4 que representa "Menos de 1 vez por semana" pasa a ser 0.7,
+# el valor 5 que representa "Nunca o casi nunca" pasa a ser 0,
 base_select$huevo <-  recode(base_select$huevo, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$carne <-  recode(base_select$carne, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$snacks <-  recode(base_select$snacks, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$refresco <-  recode(base_select$refresco, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$actfisica <-  recode(base_select$actfisica, "1=7; 2=3; 3=2; 4=0.7; 5=0")
-
+#####
+####
+#BORRAR
 table(base_select$huevo)
-
 base_select$huevo
-##eliminamos variables que son negativas o cero 
+#####
+####
+##
+# Eliminamos variables no estan definidas, aparecen signos negativos
 base_select <-  base_select %>% filter(pcard >= 0)
 base_select <-  base_select %>% filter(hiper >= 0)
 base_select <-  base_select %>% filter(diabet >= 0)
 base_select <-  base_select %>% filter(obesi >= 0)
 base_select <-  base_select %>% filter(actfisica >= 0)
-
 base_select <- base_select[!is.na(base_select$actfisica),]
-
-#agregamos edad2
+#####
+####
+##
+# CREAR AGREGAR VARIABLE
 edad2 <- (base_select$edad)^2
-base_select <- mutate(base_select, edad2)
-
-#Modelo MPL probabilidad de encontrar un problema cardiaco 
+carne <-  (base_select$carne)
+sal <-  (base_select$sal)
+#
+base_select <- base_select %>%  mutate(edad2, carne*sal)
+#####
+####
+####
+##
+# Tiramos el primer MPL de encontrar un problema cardiaco 
 Modelo1 <- lm(pcard ~ carne + huevo + snacks + sal + cafe  + hiper + massal +refresco + diabet + obesi  + sexo + edad+ edad2 + actfisica, data = base_select)
-
 summary(Modelo1)
-summary(base_select
-        )
+summary(base_select)
+#####
+######
+#####
+####
+# Tiramos el segundo MPL de encontrar un problema cardiaco 
 
-Modelo2 <- lm(pcard ~ carne + huevo + snacks + sal + cafe + sal + hiper + diabet + obesi, data = base_select)
+Modelo2 <- lm(pcard ~ , data = base_select)
 summary(Modelo2)
+#####
+######
+#####
+####
 
-s#agregamos una nueva variable que sea carne*sal 
-base_select <- base_select %>%  mutate( carnexsal = carne*sal)
-#Modelo con carne*sal
-ModeloProbando <- lm(pcard ~ carne + sal + carnexsal, data= base_select)
-summary(ModeloProbando)
 
-#Video de MPL
+
+
+
+
+
+
+
+
+
+
+
+
+
+######################################################################################################################################################################################
+############################################################################################################################################################
+########################################################################################################
+########  VIDEO MPL MANUEL
 ## Grafico valores ajustados contra valores observados
 base_select$prediccion <- predict.lm(Modelo1)
 data_mod <- data.frame(Predicted = predict(Modelo1), Observed = base_select$pcard)
