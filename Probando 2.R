@@ -9,6 +9,7 @@ install.packages("assertthat")
 install.packages("car")
 #los activamos
 library("readr")
+library("haven")
 library("lmtest")
 library("dplyr")
 library("datos")
@@ -24,11 +25,33 @@ base <- read_sav("BASE_ENS_Formulario Individual.sav")
 # SELECCIONAR VARIABLES:
 # Problemas Cardiacos - Refrescos con azucar - Carne - Huevos - Snakcs - 
 # - Cafe - Sal - Agrega más sal - Hipertención - Diabetes - Obesidad - Sexo - Edad - Nivel de actividad fisica
-base_select <- select(base, aed76h, ahv86h, ahv86e, ahv86g, ahv86i, ahv87g,ahv91,ahv92, aed75c1, aed75c2, aed75c4, pssexo_ok,psedad_ok, ahv115 ) 
+base_select <- select(base, 
+                      aed76h,#problemas cardiacos
+                      
+                      #Alimentación
+                      ahv86h, # refresco
+                      ahv86e, #carne
+                      ahv86g, #huevo
+                      ahv86i, #snacks
+                      ahv87g, #cafe
+                      ahv91, #Sal
+                      ahv92, # mas sal
+                     
+                       #enfermedades
+                      aed75c1, #hipertención
+                      aed75c2, # diabetes
+                      aed75c4,#obesidad
+                      aed76g, #insuficiencia renal
+                      
+                      #Personales
+                       pssexo_ok, #Sexo
+                      psedad_ok, #Edad
+                      ahv115,#nivel de actividad fisica
+                      ) 
 #####
 ####
 # NOMBRAR VARIABLES
-c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal", "hiper", "diabet", "obesi", "sexo", "edad", "actfisica" )
+c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal", "hiper", "diabet", "obesi", "insufrenal", "sexo", "edad", "actfisica" )
 names(base_select) = c
 #####
 ####
@@ -73,7 +96,7 @@ base_select <- base_select %>%  mutate(edad2, carne*sal)
 ####
 ##
 # Tiramos el primer MPL de encontrar un problema cardiaco 
-Modelo1 <- lm(pcard ~ carne + huevo + snacks + sal + cafe  + hiper + massal +refresco + diabet + obesi  + sexo + edad+ edad2 + actfisica, data = base_select)
+Modelo1 <- lm(pcard ~ carne + refresco + huevo + snacks + sal + cafe  + hiper + massal + diabet + obesi +insufrenal + sexo + edad+ edad2 + actfisica, data = base_select)
 summary(Modelo1)
 summary(base_select)
 #####
