@@ -7,6 +7,8 @@ install.packages("tidyverse")
 install.packages("haven")
 install.packages("assertthat")
 install.packages("car")
+install.packages('tseries')
+
 #los activamos
 library("readr")
 library("haven")
@@ -14,9 +16,10 @@ library("lmtest")
 library("dplyr")
 library("datos")
 library("tidyverse")
-library("haven")
 library("assertthat")
 library("car")
+library("tseries")
+library("ggplot2")
 ####
 ###
 # SUBIR BASE 
@@ -36,6 +39,7 @@ base_select <- select(base,
                       ahv87g, #cafe
                       ahv91, #Sal
                       ahv92, # mas sal
+                      nhv86j, #comida rapida
                      
                        #enfermedades
                       aed75c1, #hipertención
@@ -43,15 +47,22 @@ base_select <- select(base,
                       aed75c4,#obesidad
                       aed76g, #insuficiencia renal
                       
-                      #Personales
+                      
+                      #control
                        pssexo_ok, #Sexo
                       psedad_ok, #Edad
-                      ahv115,#nivel de actividad fisica
+                      ahv115,#Días a la semana actividad física habitual
+                      filtroedad_a1,
+                      
+                      #Otras
+                      ahv98,
+                      
+                
                       ) 
 #####
 ####
 # NOMBRAR VARIABLES
-c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal", "hiper", "diabet", "obesi", "insufrenal", "sexo", "edad", "actfisica" )
+c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal","comirapida", "hiper", "diabet", "obesi", "insufrenal", "sexo", "edad", "actfisica", "filtroedad", "frecfuma" )
 names(base_select) = c
 #####
 ####
@@ -62,16 +73,31 @@ names(base_select) = c
 # el valor 3 que representa "1 o 2 veces por semana" pasa a ser 2
 # el valor 4 que representa "Menos de 1 vez por semana" pasa a ser 0.7,
 # el valor 5 que representa "Nunca o casi nunca" pasa a ser 0,
+base_select$pcard <-  recode(base_select$pcard, "1=1; 2=0")
+base_select$hiper <-  recode(base_select$hiper, "1=1; 2=0")
+base_select$obesi <-  recode(base_select$obesi, "1=1; 2=0")
+base_select$diabt <-  recode(base_select$diabet, "1=1; 2=0")
+base_select$sexo <-  recode(base_select$sexo, "1=1; 2=0")
+base_select$sal <-  recode(base_select$sal, "1=1; 2=0")
+base_select$cafe <-  recode(base_select$cafe, "1=1; 2=0")
+
+base_select$insufrenal <-  recode(base_select$insufrenal, "1=1; 2=0")
 base_select$huevo <-  recode(base_select$huevo, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$carne <-  recode(base_select$carne, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$snacks <-  recode(base_select$snacks, "1=7; 2=3; 3=2; 4=0.7; 5=0")
 base_select$refresco <-  recode(base_select$refresco, "1=7; 2=3; 3=2; 4=0.7; 5=0")
-base_select$actfisica <-  recode(base_select$actfisica, "1=7; 2=3; 3=2; 4=0.7; 5=0")
+base_select$actfisica <-  recode(base_select$actfisica, "1=3; 2=2; 3=1")
+base_select$comirapida <-  recode(base_select$comirapida, "1=7; 2=3; 3=2; 4=0.7; 5=0")
+
+base_select$massal <-  recode(base_select$massal, "1=0; 2=1; 3=2")
+
 #####
 ####
 #BORRAR
-table(base_select$huevo)
+table(base_select$edad)
 base_select$huevo
+hist(base_select$edad)
+
 #####
 ####
 ##
@@ -82,30 +108,44 @@ base_select <-  base_select %>% filter(diabet >= 0)
 base_select <-  base_select %>% filter(obesi >= 0)
 base_select <-  base_select %>% filter(actfisica >= 0)
 base_select <- base_select[!is.na(base_select$actfisica),]
+base_select <-  base_select %>% filter(edad >= 18)
 #####
 ####
 ##
-# CREAR AGREGAR VARIABLE
+# CREAR Y AGREGAR VARIABLE
 edad2 <- (base_select$edad)^2
-carne <-  (base_select$carne)
 sal <-  (base_select$sal)
-#
-base_select <- base_select %>%  mutate(edad2, carne*sal)
+snacks <- (base_select$snacks)
+refresco <- (base_select$refresco)
+hiper <-  (base_select$hiper)
+obesi <-  (base_select$obesi)
+edad <-  (base_select$edad)
+sexo <-  (base_select$sexo)
+huevo <-  (base_select$huevo)
+actfisica <- (base_select$actfisica)
+
+table(base_select$sal)
+table(base_select$hiper)
+
+######
+#####
+####
+base_select <- base_select %>%  mutate(edad2, carne*sal, snacks*refresco, huevo*obesi, obesi*hiper, sal*snacks, actfisica*obesi)
 #####
 ####
 ####
 ##
 # Tiramos el primer MPL de encontrar un problema cardiaco 
-Modelo1 <- lm(pcard ~ carne + refresco + huevo + snacks + sal + cafe  + hiper + massal + diabet + obesi +insufrenal + sexo + edad+ edad2 + actfisica, data = base_select)
-summary(Modelo1)
-summary(base_select)
+PrimerModelo <- lm(pcard ~  huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2, data = base_select)
+summary(PrimerModelo)
 #####
 ######
 #####
+Modelo1 <-  lm(pcard ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2 + sal+ snacks*sal + obesi*hiper, data = base_select)
+summary(Modelo1)
 ####
 # Tiramos el segundo MPL de encontrar un problema cardiaco 
-
-Modelo2 <- lm(pcard ~ , data = base_select)
+Modelo2 <- lm(pcard ~ refresco+ carne+ sal+ massal + huevo + snacks + sexo + edad, data = base_select)
 summary(Modelo2)
 #####
 ######
@@ -114,14 +154,19 @@ summary(Modelo2)
 
 
 
+########################
+####################
+#Prueba reset
+resettest(Modelo1, 
+          power = 2:3, 
+          type = "fitted") 
+#######################3
 
 
 
 
 
-
-
-
+forma.reducida= lm(hiper ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2 + )
 
 
 
