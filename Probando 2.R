@@ -8,6 +8,7 @@ install.packages("haven")
 install.packages("assertthat")
 install.packages("car")
 install.packages('tseries')
+install.packages('sandwich')
 
 #los activamos
 library("readr")
@@ -20,6 +21,8 @@ library("assertthat")
 library("car")
 library("tseries")
 library("ggplot2")
+library("sandwich")
+
 ####
 ###
 # SUBIR BASE 
@@ -49,7 +52,7 @@ base_select <- select(base,
                       
                       
                       #control
-                       pssexo_ok, #Sexo
+                       pssexo_ok, #hombre
                       psedad_ok, #Edad
                       ahv115,#Días a la semana actividad física habitual
                       filtroedad_a1,
@@ -62,7 +65,7 @@ base_select <- select(base,
 #####
 ####
 # NOMBRAR VARIABLES
-c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal","comirapida", "hiper", "diabet", "obesi", "insufrenal", "sexo", "edad", "actfisica", "filtroedad", "frecfuma" )
+c = c("pcard","refresco" ,"carne", "huevo", "snacks", "cafe", "sal", "massal","comirapida", "hiper", "diabet", "obesi", "insufrenal", "hombre", "edad", "actfisica", "filtroedad", "frecfuma" )
 names(base_select) = c
 #####
 ####
@@ -77,7 +80,7 @@ base_select$pcard <-  recode(base_select$pcard, "1=1; 2=0")
 base_select$hiper <-  recode(base_select$hiper, "1=1; 2=0")
 base_select$obesi <-  recode(base_select$obesi, "1=1; 2=0")
 base_select$diabt <-  recode(base_select$diabet, "1=1; 2=0")
-base_select$sexo <-  recode(base_select$sexo, "1=1; 2=0")
+base_select$hombre <-  recode(base_select$hombre, "1=1; 2=0")
 base_select$sal <-  recode(base_select$sal, "1=1; 2=0")
 base_select$cafe <-  recode(base_select$cafe, "1=1; 2=0")
 
@@ -120,7 +123,7 @@ refresco <- (base_select$refresco)
 hiper <-  (base_select$hiper)
 obesi <-  (base_select$obesi)
 edad <-  (base_select$edad)
-sexo <-  (base_select$sexo)
+hombre <-  (base_select$hombre)
 huevo <-  (base_select$huevo)
 actfisica <- (base_select$actfisica)
 
@@ -136,16 +139,16 @@ base_select <- base_select %>%  mutate(edad2, carne*sal, snacks*refresco, huevo*
 ####
 ##
 # Tiramos el primer MPL de encontrar un problema cardiaco 
-PrimerModelo <- lm(pcard ~  huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2, data = base_select)
+PrimerModelo <- lm(pcard ~  huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  hombre  + edad + edad2, data = base_select)
 summary(PrimerModelo)
 #####
 ######
 #####
-Modelo1 <-  lm(pcard ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2 + sal+ snacks*sal + obesi*hiper, data = base_select)
+Modelo1 <-  lm(pcard ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  hombre  + edad + edad2 + sal+ snacks*sal, data = base_select)
 summary(Modelo1)
 ####
 # Tiramos el segundo MPL de encontrar un problema cardiaco 
-Modelo2 <- lm(pcard ~ refresco+ carne+ sal+ massal + huevo + snacks + sexo + edad, data = base_select)
+Modelo2 <- lm(pcard ~ refresco + carne + sal + massal + huevo + snacks + hombre + edad, data = base_select)
 summary(Modelo2)
 #####
 ######
@@ -166,7 +169,7 @@ resettest(Modelo1,
 
 
 
-forma.reducida= lm(hiper ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  sexo  + edad + edad2 + )
+forma.reducida= lm(hiper ~ huevo + cafe + refresco +  snacks + hiper + obesi + actfisica +  hombre  + edad + edad2  )
 
 
 
@@ -186,7 +189,7 @@ ggplot(data_mod, aes(x = Predicted,  y = Observed))+
   theme_bw()
 abline(h = 1, lty = 2, col = "darkred")
 abline(h = 0, lty = 2, col = "darkred")
-text(2.5, 0.9, cex = 0.8, "pcard")
+text(2.5, 1.6, cex = 0.8, "pcard")
 text(2.5, -0.1, cex= 0.8, "no pcard")
 
 ## Histograma de residuos
@@ -208,4 +211,8 @@ ggplot(data=data_het, mapping=aes(x=pred, y=res2)) +
   geom_point() +
   labs(x="Predicción de la probabilidad de cesárea", y="Residuo al cuadrado") +
   labs(title="Predicción de la varianza condicional del término de error")
+
+#tiramos el modelo robusto
+coeftest(Modelo1, vcov. = vcovHC)
+
 
