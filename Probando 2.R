@@ -213,13 +213,10 @@ resettest(PrimerModeloMCP,
 #Agregamos los valores de prediccion a la tabla
 base_select$prediccion <- predict.lm(PrimerModelo)
 base_select$pred <- predict.lm(PrimerModeloMCP)
-
-
-
 ####
 ##
 #
-data_mod <- data.frame(Predicted = predict(Modelo1), Observed = base_select$pcard)
+data_mod <- data.frame(Predicted = predict(PrimerModelo), Observed = base_select$pcard)
 ggplot(data_mod, aes(x = Predicted,  y = Observed))+
   geom_point(alpha=0.1)+
   geom_smooth(method="lm", se=FALSE)+
@@ -232,7 +229,7 @@ text(2.5, 0.9, cex = 0.8, "Cesárea")
 text(2.5, -0.1, cex= 0.8, "Vaginal")
 
 ## Histograma de residuos
-hist(Modelo1$residuals, main = "Histograma de residuos del Modelo 1", xlab = "Residuos del Modelo 1")
+hist(Modelo1$residuals, main = "Histograma de residuos del PrimerModelo", xlab = "Residuos del PrimerModelo")
 
 #Calculamos la proporcion de problemas cardiacos para usar en la bondad de ajuste.
 table(base_select$pcard)
@@ -245,11 +242,11 @@ prop.table(table(base_select$pcard,base_select$pcard_hat),1)
 prop.table(table(base_select$pcard,base_select$pcard_hat),2)
 
 ## El MPL se dice que es "intrínsecamente heteroscedástico"
-data_het <- data.frame(pred=Modelo1$fitted.values, res2=Modelo1$residuals^2)
+data_het <- data.frame(pred=PrimerModelo$fitted.values, res2=PrimerModelo$residuals^2)
 ggplot(data=data_het, mapping=aes(x=pred, y=res2)) + 
   geom_point() +
-  labs(x="Predicción de la probabilidad de cesárea", y="Residuo al cuadrado") +
+  labs(x="Predicción de la probabilidad de problemas cardiacos", y="Residuo al cuadrado") +
   labs(title="Predicción de la varianza condicional del término de error")
 
 #tiramos el modelo robusto
-coeftest(Modelo1, vcov. = vcovHC)
+coeftest(PrimerModelo, vcov. = vcovHC)
